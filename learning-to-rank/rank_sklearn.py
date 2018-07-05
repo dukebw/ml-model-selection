@@ -3,7 +3,6 @@
 Code partly based on the blog post by Fabian Pedregosa:
 http://fa.bianp.net/blog/2012/learning-to-rank-with-scikit-learn-the-pairwise-transform/
 """
-import itertools
 import os
 
 import numpy as np
@@ -138,7 +137,7 @@ def fit_rr(X_train, y_train, idx):
         idx: N length array of boolean values, where True means that this
             example belongs to query (block) 0, and False means query 1.
 
-    Return the normalized coefficients of the fitted ridge regression model.
+    Return the fitted ridge regression model.
     """
     # YOUR CODE HERE
     pass
@@ -151,20 +150,23 @@ plot the resulting fit along with our query ranking data.
 if os.getenv('SOLN') is not None:
     from fit_rr import fit_rr
 
-rr_coef = fit_rr(X_train, y_train, idx)
+ridge = fit_rr(X_train, y_train, idx)
+rr_coef = ridge.coef_ / np.linalg.norm(ridge.coef_)
 
 pylab.scatter(X_train[idx, 0],
               X_train[idx, 1],
               c=y_train[idx],
               marker='^',
               cmap=pylab.cm.Blues,
-              s=100)
+              s=100,
+              edgecolors='black')
 pylab.scatter(X_train[~idx, 0],
               X_train[~idx, 1],
               c=y_train[~idx],
               marker='o',
               cmap=pylab.cm.Blues,
-              s=100)
+              s=100,
+              edgecolors='black')
 pylab.arrow(0,
             0,
             7 * rr_coef[0],
@@ -177,3 +179,204 @@ pylab.text(2, 0, '$\hat{w}$', fontsize=20)
 pylab.axis('equal')
 pylab.title('Estimation by Ridge regression')
 pylab.show()
+
+"""Let's use the Kendall's tau coefficient on the test set to evaluate the
+quality of the ridge regression fit with respect to the true orderings in
+queries 0 and 1.
+
+Kendall's tau
+(https://en.wikipedia.org/wiki/Kendall_rank_correlation_coefficient) is a
+measure of rank correlation, i.e., a measure of similarity between two
+orderings of the same data, and takes all pairwise combinations of the data as
+input, returning a real valued output between -1 and 1.
+
+Define concordant pairs as all of the pairs for which the orderings are in
+agreement, define discordant pairs as all pairs that the orderings disagree on,
+and assume there are n data points. Then Kendall's tau is:
+
+tau = (# concordant pairs - # discordant pairs)/(n choose 2)
+
+__Exercise__: Using the test set and the fitted ridge regression model, write a
+function to compute and return Kendall's tau for a single query.
+
+_Hint_: https://docs.scipy.org/doc/scipy-0.14.0/reference/generated/scipy.stats.kendalltau.html
+"""
+def kendalls_tau(ridge_model, X_query, y_query):
+    """Compute and return Kendall's tau for X_query and y_query.
+
+    Args:
+        ridge_model: The ridge regression model fit to the entire dataset.
+        X_query: Data points for a single query.
+        y_query: Labels (preference score) for each datum in X_query.
+    """
+    # YOUR CODE HERE
+    pass
+
+"""We use your Kendall's tau function to evaluate the ridge regression fit
+below.
+"""
+# As before, ignore this and first try the exercise.
+if os.getenv('SOLN') is not None:
+    from kendalls_tau import kendalls_tau
+
+for i in range(2):
+    tau = kendalls_tau(ridge, X_test[b_test == i], y_test[b_test == i])
+    print(f"Kendall's tau coefficient for block {i}: {tau}")
+
+"""# The pairwise transform
+
+(Herbrich, 1999) suggests that Kendall's tau, which counts inversions of pairs,
+can be based on a new training set whose elements are pairs (x1, x2), with x1
+and x2 from the original dataset. The label of element (x1, x2) in the new
+training set is -1 if x2 is preferred to x1, and +1 if x1 is preferred to x2
+(and zero if x1 and x2's ordinal score is equal). (Herbrich, 1999) shows that
+minimizing the 0-1 classification loss on the new pairs dataset is equivalent
+to minimizing Kendall's tau on the original dataset, up to a constant factor.
+
+__Exercise__: What is a potential pitfall of the pairwise transform, as defined
+above?
+
+We further transform the pairs (x1, x2) into (x1 - x2), such that the new
+dataset consists of points (x1 - x2, sign(y1 - y2)), where (x1, y1) and
+(x2, y2) are (feature, label) pairs from the original dataset. This transforms
+the original dataset into a binary classification problem with features of the
+same dimensionality as the original features.
+
+Note that since rankings only make sense with respect to the same query, only
+pairs from the same query group are included in the new dataset (and hence
+there is no exponential explosion of number of pairs).
+
+Let's form all pairwise combinations (for each query separately), and plot the
+new dataset formed by the pairwise differences for each query, and their
+ordering.
+"""
+# Form all combinations for which there is preference one way or another, and
+# both examples are from the same query.
+combinations = [(i, j)
+                for i in range(X_train.shape[0])
+                for j in range(X_train.shape[0])
+                if ((y_train[i] != y_train[j]) and
+                    (blocks[train][i] == blocks[train][j]))]
+
+Xp = np.array([X_train[i] - X_train[j] for i, j in combinations])
+diff = np.array([y_train[i] - y_train[j] for i, j in combinations])
+yp = np.array([np.sign(d) for d in diff])
+
+# Plot the dataset of differences (x_i - x_j) with labels sign(y_i - y_j), and
+# draw the hyperplane (line, in this 2D case) with the normal vector w, which
+# is the unit vector we defined at the start. This line separates the +1 class
+# (i is preferred to j) from the -1 class (j is preferred to i).
+pylab.scatter(Xp[:, 0],
+              Xp[:, 1],
+              c=diff,
+              s=60,
+              marker='o',
+              cmap=pylab.cm.Blues,
+              edgecolors='black')
+x_space = np.linspace(-10, 10)
+pylab.plot(x_space*w[1], -x_space*w[0], color='gray')
+pylab.text(3, -4, r'$\{x^T w = 0\}$', fontsize=17)
+pylab.axis('equal')
+pylab.show()
+
+"""The data are linearly separable since in our generated dataset there were no
+inversions, i.e., pairs of data points that project onto w in the opposite
+order of their respective ranks. In general the data will not always be
+linearly separable.
+
+Let's train a RankSVM model on the dataset we have constructed from differences
+of pairs from the original dataset, i.e., Xp and yp.
+
+RankSVM
+[(Joachim, 2002)](http://www.cs.cornell.edu/people/tj/publications/joachims_02c.pdf)
+works by maximizing the number of inequalities w*x1 > w*x2, where the features
+x1 are from a URL that ranks lower than x2 for a given query. Support
+vector machines (SVMs) approximate the solution to this maximization problem by
+introducing slack variables, and solving the optimization problem:
+
+    minimize: 0.5*w**2 + C*\sum_{i,j,k}{slack variables}
+
+    subject to: w*x_i >= w*x_j + 1 - slack_{i,j,k}
+
+    For all data points (x_i, y_j) for which x_i's URL is preferred to y_j's
+    URL for the query with id k.
+
+RankSVM poses the optimization problem as equivalent to that of a binary
+classification SVM on pairwise difference vectors (x_i - x_j). Let's use
+RankSVM on our ranking problem now.
+
+__Exercise__: Fit a RankSVM model (i.e., an SVM classifier on pairwise
+differences) to our paired dataset (Xp, yp).
+
+_Hint_: http://scikit-learn.org/stable/modules/generated/sklearn.svm.SVC.html
+"""
+def rank_svm(X_pairs, y_pairs):
+    """Fit a RankSVM model on the dataset of pairwise difference vectors
+    X_pairs with labels y_pairs indicating preference.
+
+    Args:
+        X_pairs: Pairwise differences computed from the original dataset.
+        y_pairs: sign(y1 - y2) for pairs (x1, x2), i.e., -1 or +1 indicating
+            preference of x1 to x2.
+
+    Return the fitted RankSVM model.
+    """
+    # YOUR CODE HERE
+    pass
+
+"""Next we plot the weights w produced by your RankSVM fit."""
+if os.getenv('SOLN') is not None:
+    from rank_svm import rank_svm
+
+rank_model = rank_svm(Xp, yp)
+
+# Normalize the coefficients from the fitted RankSVM model for the purpose of
+# plotting.
+coef = rank_model.coef_.ravel() / np.linalg.norm(rank_model.coef_)
+
+pylab.scatter(X_train[idx, 0],
+              X_train[idx, 1],
+              c=y_train[idx],
+              marker='^',
+              cmap=pylab.cm.Blues,
+              s=100,
+              edgecolors='black')
+pylab.scatter(X_train[~idx, 0],
+              X_train[~idx, 1],
+              c=y_train[~idx],
+              marker='o',
+              cmap=pylab.cm.Blues,
+              s=100,
+              edgecolors='black')
+pylab.arrow(0,
+            0,
+            7 * coef[0],
+            7 * coef[1],
+            fc='gray',
+            ec='gray',
+            head_width=0.5,
+            head_length=0.5)
+pylab.arrow(-3,
+            -8,
+            7 * coef[0],
+            7 * coef[1],
+            fc='gray',
+            ec='gray',
+            head_width=0.5,
+            head_length=0.5)
+pylab.text(1, .7, r'$\hat{w}$', fontsize=20)
+pylab.text(-2.6, -7, r'$\hat{w}$', fontsize=20)
+pylab.axis('equal')
+pylab.show()
+
+"""Finally, we compute the Kendall's tau ranking score and compare RankSVM with
+the ridge regression fit.
+"""
+for i in range(2):
+    tau, _ = scipy.stats.kendalltau(np.dot(X_test[b_test == i], coef),
+                                    y_test[b_test == i])
+    print(f"Kendall's tau coefficient for block {i}: {tau}")
+
+"""Our RankSVM solution should indeed give a higher Kendall's tau score than
+the ridge regression.
+"""

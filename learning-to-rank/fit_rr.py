@@ -7,4 +7,4 @@ def fit_rr(X_train, y_train, idx):
 
     ridge.fit(X_train, y_train)
 
-    return ridge.coef_ / np.linalg.norm(ridge.coef_)
+    return ridge
