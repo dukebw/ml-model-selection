@@ -1,0 +1,488 @@
+<style type="text/css">td.linenos { background-color: #f0f0f0; padding-right: 10px; }
+span.lineno { background-color: #f0f0f0; padding: 0 5px 0 5px; }
+pre { line-height: 125%; }
+body .hll { background-color: #ffffcc }
+body  { background: #f8f8f8; }
+body .c { color: #408080; font-style: italic } /* Comment */
+body .err { border: 1px solid #FF0000 } /* Error */
+body .k { color: #008000; font-weight: bold } /* Keyword */
+body .o { color: #666666 } /* Operator */
+body .ch { color: #408080; font-style: italic } /* Comment.Hashbang */
+body .cm { color: #408080; font-style: italic } /* Comment.Multiline */
+body .cp { color: #BC7A00 } /* Comment.Preproc */
+body .cpf { color: #408080; font-style: italic } /* Comment.PreprocFile */
+body .c1 { color: #408080; font-style: italic } /* Comment.Single */
+body .cs { color: #408080; font-style: italic } /* Comment.Special */
+body .gd { color: #A00000 } /* Generic.Deleted */
+body .ge { font-style: italic } /* Generic.Emph */
+body .gr { color: #FF0000 } /* Generic.Error */
+body .gh { color: #000080; font-weight: bold } /* Generic.Heading */
+body .gi { color: #00A000 } /* Generic.Inserted */
+body .go { color: #888888 } /* Generic.Output */
+body .gp { color: #000080; font-weight: bold } /* Generic.Prompt */
+body .gs { font-weight: bold } /* Generic.Strong */
+body .gu { color: #800080; font-weight: bold } /* Generic.Subheading */
+body .gt { color: #0044DD } /* Generic.Traceback */
+body .kc { color: #008000; font-weight: bold } /* Keyword.Constant */
+body .kd { color: #008000; font-weight: bold } /* Keyword.Declaration */
+body .kn { color: #008000; font-weight: bold } /* Keyword.Namespace */
+body .kp { color: #008000 } /* Keyword.Pseudo */
+body .kr { color: #008000; font-weight: bold } /* Keyword.Reserved */
+body .kt { color: #B00040 } /* Keyword.Type */
+body .m { color: #666666 } /* Literal.Number */
+body .s { color: #BA2121 } /* Literal.String */
+body .na { color: #7D9029 } /* Name.Attribute */
+body .nb { color: #008000 } /* Name.Builtin */
+body .nc { color: #0000FF; font-weight: bold } /* Name.Class */
+body .no { color: #880000 } /* Name.Constant */
+body .nd { color: #AA22FF } /* Name.Decorator */
+body .ni { color: #999999; font-weight: bold } /* Name.Entity */
+body .ne { color: #D2413A; font-weight: bold } /* Name.Exception */
+body .nf { color: #0000FF } /* Name.Function */
+body .nl { color: #A0A000 } /* Name.Label */
+body .nn { color: #0000FF; font-weight: bold } /* Name.Namespace */
+body .nt { color: #008000; font-weight: bold } /* Name.Tag */
+body .nv { color: #19177C } /* Name.Variable */
+body .ow { color: #AA22FF; font-weight: bold } /* Operator.Word */
+body .w { color: #bbbbbb } /* Text.Whitespace */
+body .mb { color: #666666 } /* Literal.Number.Bin */
+body .mf { color: #666666 } /* Literal.Number.Float */
+body .mh { color: #666666 } /* Literal.Number.Hex */
+body .mi { color: #666666 } /* Literal.Number.Integer */
+body .mo { color: #666666 } /* Literal.Number.Oct */
+body .sa { color: #BA2121 } /* Literal.String.Affix */
+body .sb { color: #BA2121 } /* Literal.String.Backtick */
+body .sc { color: #BA2121 } /* Literal.String.Char */
+body .dl { color: #BA2121 } /* Literal.String.Delimiter */
+body .sd { color: #BA2121; font-style: italic } /* Literal.String.Doc */
+body .s2 { color: #BA2121 } /* Literal.String.Double */
+body .se { color: #BB6622; font-weight: bold } /* Literal.String.Escape */
+body .sh { color: #BA2121 } /* Literal.String.Heredoc */
+body .si { color: #BB6688; font-weight: bold } /* Literal.String.Interpol */
+body .sx { color: #008000 } /* Literal.String.Other */
+body .sr { color: #BB6688 } /* Literal.String.Regex */
+body .s1 { color: #BA2121 } /* Literal.String.Single */
+body .ss { color: #19177C } /* Literal.String.Symbol */
+body .bp { color: #008000 } /* Name.Builtin.Pseudo */
+body .fm { color: #0000FF } /* Name.Function.Magic */
+body .vc { color: #19177C } /* Name.Variable.Class */
+body .vg { color: #19177C } /* Name.Variable.Global */
+body .vi { color: #19177C } /* Name.Variable.Instance */
+body .vm { color: #19177C } /* Name.Variable.Magic */
+body .il { color: #666666 } /* Literal.Number.Integer.Long */
+</style>
+<p>Imagine we have a dataset of user search queries with corresponding ranked
+search results, and user clickthrough data (i.e., which of the returned URLs
+were clicked). Let's follow Dlib's
+<a href="http://dlib.net/ml.html">machine learning flow chart</a> to determine
+an algorithm to apply.</p>
+
+<p></p>
+
+<p><img alt="Full Dlib machine learning flow chart." src="/ml_guide.svg" /></p>
+
+<p></p>
+
+<p>Let's start at the start and let the flow chart do our model selection for
+us. We aren't predicting a true/false label, or a categorical label in general,
+and we&nbsp;<em>are</em>&nbsp;predicting a continuous quantity (search result
+relevance), which we are trying to rank order. This leads us to
+<a href="http://dlib.net/ml.html#svm_rank_trainer">svm_rank_trainer</a>, as
+shown below.</p>
+
+<p></p>
+
+<p><img alt="Flow for learning to rank." src="/ml_guide_svm_rank_trainer.svg" /></p>
+
+<p></p>
+
+<p>Dlib's flow chart lands us in the structured prediction group of machine learning algorithms, and we shall see that structure exists in the relative ordering of pairs.</p>
+
+<p><a href="https://en.wikipedia.org/wiki/Learning_to_rank">Learning to rank</a>&nbsp;is applying machine learning to order data, e.g., to order
+documents retrieved for a search query by relevance. As discussed in
+(<a href="http://didawikinf.di.unipi.it/lib/exe/fetch.php/magistraleinformatica/ir/ir13/1_-_learning_to_rank.pdf">Tie-Yan Liu,&nbsp; 2009</a>),
+learning to rank algorithms can be categorized into three categories:
+pointwise, pairwise, and listwise.</p>
+
+<p>In this tutorial, we will cover how to use scikit-learn to implement the
+pairwise transform,&nbsp;and use RankSVM to make predictions on a learning to
+rank problem.</p>
+
+<p>A search engine's task is to return relevant documents (URLs) to a user
+based on the user's query, and learning to rank refers to using statistical
+methods to infer the best ranking of URLs for a given query.</p>
+
+<p>Standard research datasets for the task of learning to rank include
+<a href="https://www.microsoft.com/en-us/research/project/mslr/">MSLR-WEB</a>&nbsp;and
+<a href="https://www.microsoft.com/en-us/research/project/letor-learning-rank-information-retrieval">LETOR</a>.</p>
+
+<p>These datasets consist of a set of query ids, numerical features, and
+ranking scores. There are various numerical features, such as the sum of query
+terms, called term frequency (TF), in the page title, URL, and body, the
+<a href="https://en.wikipedia.org/wiki/PageRank">PageRank</a>&nbsp;of the page,
+the number of child pages, etc.&nbsp;A complete set of feature descriptions can
+be found in the
+<a href="https://arxiv.org/pdf/1306.2597.pdf">LETOR paper</a>.</p>
+
+<p>We will present a toy example for pedagogical purposes, under the
+understanding that the same concepts, libraries and algorithms can be reused on
+research and real world datasets as well.</p>
+
+<p>The scikit-learn version&nbsp;of the full learning to rank code is
+available&nbsp;<a href="https://github.com/dukebw/ml-model-selection/tree/master/learning-to-rank">here</a>,
+and a Jupyter notebook can be created from rank_sklearn.py using
+<a href="https://github.com/sklam/py2nb">py2nb</a>.</p>
+
+<p></p>
+
+<h1>Learning to Rank with scikit-learn</h1>
+
+<p></p>
+
+<p>We begin our learning to rank tutorial with a toy example, by generating
+data from two different partitions, corresponding to different queries. The two
+partitions are offset from each other, and within each partition data points
+are normally distributed about their class centers, which are evenly spaced in
+one direction.</p>
+
+<p></p>
+
+<div class="highlight">
+<pre>
+    <span class="c1"># Create a dataset where target relevance scores consist of measurements
+    # Y = {0, 1, 2}, and input data are 30 samples with two features each.</span>
+    <span class="c1">#</span>
+    <span class="c1"># Queries are generated from two normal distributions X1 and X2 of</span>
+    <span class="c1"># different means and covariances.</span>
+
+    <span class="c1"># Data from each of the two partitions follow vectors parallel to unit</span>
+    <span class="c1"># vector w, which is at angle theta to horizontal, with added noise.</span>
+    <span class="n">theta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="mi">60</span><span class="p">)</span>
+    <span class="n">w</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">theta</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">theta</span><span class="p">)])</span>
+
+    <span class="c1"># The input data, in X, consist of two partitions of 3*K/2 points each.</span>
+    <span class="c1"># Each input datum has two features.</span>
+    <span class="c1">#</span>
+    <span class="c1"># Each partition has three clusters of K/2 data points, one for each Y</span>
+    <span class="c1"># label, where each cluster is normally distributed with mean proportional</span>
+    <span class="c1"># to the cluster number along vector w.</span>
+    <span class="n">K</span> <span class="o">=</span> <span class="mi">20</span>
+    <span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">K</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">K</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">):</span>
+        <span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">X</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">K</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">i</span><span class="o">*</span><span class="mi">4</span><span class="o">*</span><span class="n">w</span><span class="p">))</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">y</span><span class="p">,</span> <span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">K</span><span class="p">))</span>
+
+    <span class="c1"># Slightly displace data corresponding to our second partition, which is</span>
+    <span class="c1"># all the even indices of X.</span>
+    <span class="n">part0_offset</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="o">-</span><span class="mi">3</span><span class="p">,</span> <span class="o">-</span><span class="mi">7</span><span class="p">])</span>
+    <span class="n">X</span><span class="p">[::</span><span class="mi">2</span><span class="p">]</span> <span class="o">+=</span> <span class="n">part0_offset</span>
+</pre>
+</div>
+
+<p></p>
+
+<p>The generated data are below. The colours, white, light blue, and dark blue,
+represent the classes of the data, i.e., the ranking. Note that while within
+each partition data are linearly separable by rank, the combined data are
+not.</p>
+
+<p><img alt="Toy data with w vector." src="/toy-data-w-vector.svg" /></p>
+
+<p>Let's try to naively fit a single vector to the data via ridge regression,
+in order to demonstrate the need for query structure in our predictive modeling
+of search rankings. We will see that ridge regression tries to fit both queries
+at the same time, and therefore produces a poor fit.</p>
+
+<p><strong>Exercise</strong>: Use scikit-learn to fit a ridge regression model
+to the data, and plot the result.</p>
+
+<p><em>
+<a href=http://scikit-learn.org/stable/modules/generated/sklearn.linear_model.Ridge.html>Hint!</a></em>
+</p>
+
+<p>Write your solution in the skeleton function definition below.</p>
+
+<p><button onclick="toggleSolution('fitRR')">Toggle solution</button></p>
+
+<div id="fitRRunsolved">
+<div class="highlight">
+<pre>
+<span class="k">def</span> <span class="nf">fit_rr</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">,</span> <span class="n">idx</span><span class="p">):</span>
+    <span class="sd">"""Fit dataset (X_train, y_train) using ridge regression, i.e., fit a</span>
+<span class="sd">    linear model with L2 weight regularization.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        X_train: [N, 2] array of input features.</span>
+<span class="sd">        y_train: N length vector of labels in {0, 1, 2}, indicating each</span>
+<span class="sd">            datapoint's ordinal relevance score.</span>
+<span class="sd">        idx: N length array of boolean values, where True means that this</span>
+<span class="sd">            example belongs to query (block) 0, and False means query 1.</span>
+
+<span class="sd">    Return the fitted ridge regression model.</span>
+<span class="sd">    """</span>
+    <span class="c1"># YOUR CODE HERE</span>
+    <span class="k">pass</span>
+</pre>
+</div>
+</div>
+
+<div class="hidden" id="fitRRsolved">
+<div class="highlight">
+<pre>
+<span class="kn">import</span> <span class="nn">sklearn.linear_model</span>
+
+
+<span class="k">def</span> <span class="nf">fit_rr</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">,</span> <span class="n">idx</span><span class="p">):</span>
+    <span class="n">ridge</span> <span class="o">=</span> <span class="n">sklearn</span><span class="o">.</span><span class="n">linear_model</span><span class="o">.</span><span class="n">Ridge</span><span class="p">(</span><span class="mf">1.</span><span class="p">)</span>
+
+    <span class="n">ridge</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">ridge</span>
+</pre>
+</div>
+</div>
+<script>
+function toggleSolution(basename) {
+        var unsolved = document.getElementById(basename + 'unsolved');
+        var solved = document.getElementById(basename + 'solved');
+        if (solved.classList.contains('hidden')) {
+                solved.classList.remove('hidden');
+        }
+        if (unsolved.style.display === 'none') {
+                unsolved.style.display = 'block';
+                solved.style.display = 'none';
+        } else {
+                unsolved.style.display = 'none';
+                solved.style.display = 'block';
+        }
+}
+</script>
+
+<p></p>
+
+<p>Let's use the code we just wrote in <span class="nf">fit_rr</span> to fit a
+ridge regression model, and plot the resulting fit along with our query ranking
+data.</p>
+
+<p><img alt="Plot of fitted ridge regression model." src="/ridge-regression-fit.svg" /></p>
+
+<p></p>
+
+<p>Let's use the Kendall's tau coefficient on the test set to evaluate the
+quality of the ridge regression fit with respect to the true orderings in
+queries 0 and 1.</p>
+
+<p>
+<a href=https://en.wikipedia.org/wiki/Kendall_rank_correlation_coefficient>Kendall's tau</a>
+is a measure of rank correlation, i.e., a measure of similarity between two
+orderings of the same data, and takes all pairwise combinations of the data as
+input, returning a real valued output between -1 and 1.</p>
+
+<p>Define concordant pairs as all of the pairs for which the orderings are in
+agreement, define discordant pairs as all pairs that the orderings disagree on,
+and assume there are n data points. Then Kendall's tau is:</p>
+
+<p>tau = (# concordant pairs - # discordant pairs)/(n choose 2)</p>
+
+<p><strong>Exercise</strong>: Using the test set and the fitted ridge
+regression model, write a function to compute and return Kendall's tau for a
+single query.</p>
+
+<p><em>
+<a href=https://docs.scipy.org/doc/scipy-0.14.0/reference/generated/scipy.stats.kendalltau.html>Hint!</a></em>
+</p>
+
+<p></p>
+
+<p><button onclick="toggleSolution('kendallTau')">Toggle solution</button></p>
+
+<div id="kendallTauunsolved">
+<div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">kendalls_tau</span><span class="p">(</span><span class="n">ridge_model</span><span class="p">,</span> <span class="n">X_query</span><span class="p">,</span> <span class="n">y_query</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Compute and return Kendall&#39;s tau for X_query and y_query.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        ridge_model: The ridge regression model fit to the entire dataset.</span>
+<span class="sd">        X_query: Data points for a single query.</span>
+<span class="sd">        y_query: Labels (preference score) for each datum in X_query.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># YOUR CODE HERE</span>
+    <span class="k">pass</span>
+</pre></div>
+</div>
+
+<div class="hidden" id="kendallTausolved">
+<div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">scipy.stats</span>
+
+
+<span class="k">def</span> <span class="nf">kendalls_tau</span><span class="p">(</span><span class="n">ridge_model</span><span class="p">,</span> <span class="n">X_query</span><span class="p">,</span> <span class="n">y_query</span><span class="p">):</span>
+    <span class="n">predicted_ordering</span> <span class="o">=</span> <span class="n">ridge_model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X_query</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">scipy</span><span class="o">.</span><span class="n">stats</span><span class="o">.</span><span class="n">kendalltau</span><span class="p">(</span><span class="n">predicted_ordering</span><span class="p">,</span> <span class="n">y_query</span><span class="p">)</span>
+</pre></div>
+</div>
+
+<p>
+With our working function, let's compute Kendall's tau on the test set, and
+report the results below.
+</p>
+
+<p>
+<pre>
+<code>
+Kendall's tau coefficient for block 0: 0.7112197171355642
+Kendall's tau coefficient for block 1: 0.84387274640268606
+</code>
+</pre>
+</p>
+
+<h2>The pairwise transform</h2>
+
+<p>(Herbrich, 1999) suggests that Kendall's tau, which counts inversions of
+pairs, can be based on a new training set whose elements are pairs (x1, x2),
+with x1 and x2 from the original dataset. The label of element (x1, x2) in the
+new training set is -1 if x2 is preferred to x1, and +1 if x1 is preferred to
+x2 (and zero if x1 and x2's ordinal score is equal). (Herbrich, 1999) shows
+that minimizing the 0-1 classification loss on the new pairs dataset is
+equivalent to minimizing Kendall's tau on the original dataset, up to a
+constant factor.</p>
+
+<p><strong>Exercise</strong>: What is a potential pitfall of the pairwise
+transform, as defined above?</p>
+
+<p>We further transform the pairs (x1, x2) into (x1 - x2), such that the new
+dataset consists of points (x1 - x2, sign(y1 - y2)), where (x1, y1) and
+(x2, y2) are (feature, label) pairs from the original dataset. This transforms
+the original dataset into a binary classification problem with features of the
+same dimensionality as the original features.</p>
+
+<p>Note that since rankings only make sense with respect to the same query,
+only pairs from the same query group are included in the new dataset (and hence
+there is no exponential explosion of number of pairs).</p>
+
+<p>Let's form all pairwise combinations (for each query separately), and plot
+the new dataset formed by the pairwise differences for each query, and their
+ordering.</p>
+
+<p></p>
+
+<div class="highlight"><pre><span></span><span class="c1"># Form all combinations for which there is preference one way or another, and</span>
+<span class="c1"># both examples are from the same query.</span>
+<span class="n">combinations</span> <span class="o">=</span> <span class="p">[(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">X_train</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">X_train</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="k">if</span> <span class="p">((</span><span class="n">y_train</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">!=</span> <span class="n">y_train</span><span class="p">[</span><span class="n">j</span><span class="p">])</span> <span class="ow">and</span>
+                    <span class="p">(</span><span class="n">blocks</span><span class="p">[</span><span class="n">train</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="n">blocks</span><span class="p">[</span><span class="n">train</span><span class="p">][</span><span class="n">j</span><span class="p">]))]</span>
+
+<span class="n">Xp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">X_train</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">X_train</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">combinations</span><span class="p">])</span>
+<span class="n">diff</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">y_train</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">y_train</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">combinations</span><span class="p">])</span>
+<span class="n">yp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">d</span><span class="p">)</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">diff</span><span class="p">])</span>
+</pre></div>
+
+<p></p>
+
+<p>Let's plot the dataset of differences (x_i - x_j) with labels sign(y_i - y_j), and
+draw the hyperplane (line, in this 2D case) with the normal vector w, which is
+the unit vector we defined at the start. This line separates the +1 class (i is
+preferred to j) from the -1 class (j is preferred to i).</p>
+
+<p>Our resulting new dataset is below.</p>
+
+<p><img alt="Dataset of pairwise differences, with hyperplane." src="/pairwise-hyperplane.svg" /></p>
+
+<p>The data are linearly separable since in our generated dataset there were no
+inversions, i.e., pairs of data points that project onto w in the opposite
+order of their respective ranks. In general the data will not always be
+linearly separable.</p>
+
+<p>Let's train a RankSVM model on the dataset we have constructed from
+differences of pairs from the original dataset, i.e., Xp and yp.</p>
+
+<p>RankSVM
+<a href=http://www.cs.cornell.edu/people/tj/publications/joachims_02c.pdf>(Joachim, 2002)</a>
+works by maximizing the number of inequalities w*x1 &gt; w*x2, where the features
+x1 are from a URL that ranks lower than x2 for a given query. Support vector
+machines (SVMs) approximate the solution to this maximization problem by
+introducing slack variables, and solving the optimization problem:</p>
+
+<pre>
+<code>
+    minimize: 0.5*w**2 + C*\sum_{i,j,k}{slack variables}
+
+    subject to: w*x_i &gt;= w*x_j + 1 - slack_{i,j,k}
+
+    For all data points (x_i, y_j) for which x_i's URL is preferred to y_j's
+    URL for the query with id k.
+</code>
+</pre>
+
+<p>RankSVM poses the optimization problem as equivalent to that of a binary
+classification SVM on pairwise difference vectors (x_i - x_j). Let's use
+RankSVM on our ranking problem now.</p>
+
+<p><strong>Exercise</strong>: Fit a RankSVM model (i.e., an SVM classifier on
+pairwise differences) to our paired dataset (Xp, yp).</p>
+
+<p><em>
+<a href=http://scikit-learn.org/stable/modules/generated/sklearn.svm.SVC.html>Hint!</a></em>
+</p>
+
+<p><button onclick="toggleSolution('rankSVM')">Toggle solution</button></p>
+
+<div id="rankSVMunsolved">
+<div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">rank_svm</span><span class="p">(</span><span class="n">X_pairs</span><span class="p">,</span> <span class="n">y_pairs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Fit a RankSVM model on the dataset of pairwise difference vectors</span>
+<span class="sd">    X_pairs with labels y_pairs indicating preference.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        X_pairs: Pairwise differences computed from the original dataset.</span>
+<span class="sd">        y_pairs: sign(y1 - y2) for pairs (x1, x2), i.e., -1 or +1 indicating</span>
+<span class="sd">            preference of x1 to x2.</span>
+
+<span class="sd">    Return the fitted RankSVM model.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># YOUR CODE HERE</span>
+    <span class="k">pass</span>
+</pre></div>
+</div>
+
+<div class="hidden" id="rankSVMsolved">
+<div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">sklearn.svm</span>
+
+
+<span class="k">def</span> <span class="nf">rank_svm</span><span class="p">(</span><span class="n">X_pairs</span><span class="p">,</span> <span class="n">y_pairs</span><span class="p">):</span>
+    <span class="n">rank_model</span> <span class="o">=</span> <span class="n">sklearn</span><span class="o">.</span><span class="n">svm</span><span class="o">.</span><span class="n">SVC</span><span class="p">(</span><span class="n">kernel</span><span class="o">=</span><span class="s1">&#39;linear&#39;</span><span class="p">,</span> <span class="n">C</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
+    <span class="n">rank_model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X_pairs</span><span class="p">,</span> <span class="n">y_pairs</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">rank_model</span>
+</pre></div>
+</div>
+
+<p>Using our RankSVM function, we produce a fit plotted below.</p>
+
+<p><img alt="RankSVM fit.." src="/rank-svm-fit.svg" /></p>
+
+<p></p>
+
+<p>Finally, we compute the Kendall's tau ranking score and compare RankSVM with
+the ridge regression fit.</p>
+
+<p>
+<pre>
+<code>
+Kendall's tau coefficient for block 0: 0.8362693377308282
+Kendall's tau coefficient for block 1: 0.8438727464026861
+</code>
+</pre>
+<p>
+
+<p>Our RankSVM solution indeed gives a higher Kendall's tau score than the
+ridge regression.</p>
+
+<hr />
+<p></p>
+
+<ol>
+	<li><a href="http://fa.bianp.net/">Fabian Pedregosa</a>'s
+    <a href="http://fa.bianp.net/blog/2012/learning-to-rank-with-scikit-learn-the-pairwise-transform/">blog</a> on the pairwise transform.</li>
+</ol>

@@ -1,7 +1,31 @@
-"""# Introduction to learning to rank with scikit-learn using the MLSR-WEB30k dataset.
+"""# Introduction to learning to rank with scikit-learn using the MLSR-WEB30k
+dataset.
 
 Code partly based on the blog post by Fabian Pedregosa:
 http://fa.bianp.net/blog/2012/learning-to-rank-with-scikit-learn-the-pairwise-transform/
+
+In this tutorial, we will cover how to use scikit-learn to implement the
+pairwise transform and use RankSVM to make predictions on a learning to rank
+problem.
+
+A search engine's task is to return relevant documents (URLs) to a user based
+on the user's query, and learning to rank refers to using statistical methods
+to infer the best ranking of URLs for a given query.
+
+Standard research datasets for the task of learning to rank include
+[MSLR-WEB](https://www.microsoft.com/en-us/research/project/mslr/) and
+[LETOR](https://www.microsoft.com/en-us/research/project/letor-learning-rank-information-retrieval).
+
+These datasets consist of a set of query ids, numerical features, and ranking
+scores. There are various numerical features, such as the sum of query terms,
+called term frequency (TF), in the page title, URL, and body, the
+[PageRank](https://en.wikipedia.org/wiki/PageRank) of the page, the number of
+child pages, etc. A complete set of feature descriptions can be found in the
+[LETOR paper](https://arxiv.org/pdf/1306.2597.pdf).
+
+We will present a toy example for pedagogical purposes, under the understanding
+that the same concepts, libraries and algorithms can be reused on research and
+real world datasets as well.
 """
 import os
 
@@ -15,12 +39,8 @@ import sklearn.model_selection
 # Set the random seed to be predictable.
 np.random.seed(0)
 
-"""TODO(brendan): relate the following to a real dataset of queries, rankings,
-and scores (e.g., clickthrough data). It is important to provide context for
-this toy example, or people will lose interest immediately.
-
-Create a dataset where target values consist of measurements Y = {0, 1, 2},
-and input data is 30 samples with two features each.
+"""Create a dataset where target relevance scores consist of measurements
+Y = {0, 1, 2}, and input data are 30 samples with two features each.
 
 Queries are generated from two normal distributions X1 and X2 of different
 means and covariances.
